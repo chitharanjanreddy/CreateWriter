@@ -130,6 +130,7 @@ lyricsSchema.pre('save', function(next) {
 
 // Virtual for excerpt
 lyricsSchema.virtual('excerpt').get(function() {
+  if (!this.content) return '';
   return this.content.substring(0, 200) + (this.content.length > 200 ? '...' : '');
 });
 
