@@ -1,0 +1,89 @@
+# CreativeWriter Backend - Docker Compose
+# Run: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # ==================== API SERVICE ====================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: creativewriter-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongo:27017/creativewriter
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
+      - JWT_EXPIRE=${JWT_EXPIRE:-7d}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@akashinnotech.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - creativewriter-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ==================== MONGODB SERVICE ====================
+  mongo:
+    image: mongo:7
+    container_name: creativewriter-mongo
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=creativewriter
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - creativewriter-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ==================== MONGO EXPRESS (Development) ====================
+  mongo-express:
+    image: mongo-express:latest
+    container_name: creativewriter-mongo-express
+    restart: unless-stopped
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8081}:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USER:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASS:-admin123}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - creativewriter-network
+    profiles:
+      - dev
+
+# ==================== NETWORKS ====================
+networks:
+  creativewriter-network:
+    driver: bridge
+
+# ==================== VOLUMES ====================
+volumes:
+  mongo-data:
+    driver: local
+  mongo-config:
+    driver: local

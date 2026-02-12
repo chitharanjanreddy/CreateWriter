@@ -1,23 +1,24 @@
-# Environment variables
+# Dependencies
+node_modules/
+
+# Environment
 .env
 .env.local
 .env.*.local
 
-# Dependencies
-node_modules/
-
-# Build output
-dist/
-build/
-
 # Logs
-*.log
 logs/
+*.log
 npm-debug.log*
 
-# Database
-*.db
-*.sqlite
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Build
+dist/
+build/
 
 # IDE
 .idea/
@@ -29,16 +30,14 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Uploads
-uploads/
-temp/
-
-# Archives
-*.zip
-
 # Testing
 coverage/
 .nyc_output/
+
+# Temp files
+tmp/
+temp/
+*.tmp
 
 # Secrets
 *.pem
