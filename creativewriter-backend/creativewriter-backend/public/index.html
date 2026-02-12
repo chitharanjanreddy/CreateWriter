@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CreativeWriter API Tester</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    /* Header */
+    .header { background: linear-gradient(135deg, #1e293b, #334155); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #475569; }
+    .header h1 { font-size: 20px; color: #f8fafc; }
+    .header h1 span { color: #818cf8; }
+    .auth-status { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .auth-status .user-info { color: #94a3b8; }
+    .auth-status .user-info strong { color: #818cf8; }
+    .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge-admin { background: #7c3aed; color: white; }
+    .badge-user { background: #059669; color: white; }
+    .badge-none { background: #475569; color: #94a3b8; }
+
+    /* Layout */
+    .container { display: flex; height: calc(100vh - 57px); }
+
+    /* Sidebar */
+    .sidebar { width: 220px; background: #1e293b; border-right: 1px solid #334155; overflow-y: auto; flex-shrink: 0; }
+    .sidebar-section { padding: 12px 0; border-bottom: 1px solid #334155; }
+    .sidebar-section h3 { padding: 4px 16px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    .sidebar-item { padding: 8px 16px; cursor: pointer; font-size: 13px; color: #94a3b8; transition: all 0.15s; display: flex; align-items: center; gap: 8px; }
+    .sidebar-item:hover { background: #334155; color: #e2e8f0; }
+    .sidebar-item.active { background: #334155; color: #818cf8; border-left: 3px solid #818cf8; }
+    .method { font-size: 10px; font-weight: 700; padding: 1px 4px; border-radius: 3px; min-width: 36px; text-align: center; }
+    .method-get { background: #065f46; color: #6ee7b7; }
+    .method-post { background: #1e3a5f; color: #93c5fd; }
+    .method-put { background: #713f12; color: #fcd34d; }
+    .method-patch { background: #4a1d96; color: #c4b5fd; }
+    .method-delete { background: #7f1d1d; color: #fca5a5; }
+
+    /* Main content */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Panel area */
+    .panel-area { flex: 1; display: flex; overflow: hidden; }
+
+    /* Request panel */
+    .request-panel { flex: 1; padding: 20px; overflow-y: auto; border-right: 1px solid #334155; }
+    .panel-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #f8fafc; }
+    .panel-desc { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+    .endpoint-url { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 10px 14px; font-family: monospace; font-size: 13px; color: #94a3b8; margin-bottom: 16px; word-break: break-all; }
+
+    /* Forms */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 8px 12px; background: #1e293b; border: 1px solid #334155; border-radius: 6px;
+      color: #e2e8f0; font-size: 13px; font-family: inherit; transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #818cf8; }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+    .checkbox-group { display: flex; align-items: center; gap: 8px; }
+    .checkbox-group input[type="checkbox"] { width: auto; }
+
+    /* Buttons */
+    .btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-secondary:hover { background: #475569; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-group { display: flex; gap: 8px; margin-top: 16px; }
+
+    /* Response panel */
+    .response-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .response-header { padding: 12px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .response-header h3 { font-size: 14px; color: #94a3b8; }
+    .status-badge { padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+    .status-2xx { background: #065f46; color: #6ee7b7; }
+    .status-4xx { background: #7f1d1d; color: #fca5a5; }
+    .status-5xx { background: #7f1d1d; color: #fca5a5; }
+    .response-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+    .response-body pre { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; color: #e2e8f0; }
+    .response-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #475569; font-size: 14px; }
+    .response-time { font-size: 11px; color: #64748b; }
+    .loading { color: #818cf8; }
+
+    /* Cards for dashboard/lists */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 14px; }
+    .stat-card .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 24px; font-weight: 700; color: #818cf8; margin-top: 4px; }
+    .stat-card .sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    /* Table */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { text-align: left; padding: 8px 12px; background: #1e293b; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #334155; }
+    .data-table td { padding: 8px 12px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+    .data-table tr:hover td { background: #1e293b; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    .hidden { display: none !important; }
+    .separator { border: none; border-top: 1px solid #334155; margin: 16px 0; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>CreativeWriter</span> API Tester</h1>
+  <div class="auth-status">
+    <span class="user-info" id="authInfo">Not logged in</span>
+    <span class="badge badge-none" id="roleBadge">guest</span>
+    <button class="btn btn-secondary" id="logoutBtn" style="display:none; padding:4px 12px; font-size:12px;" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="sidebar">
+    <!-- Auth -->
+    <div class="sidebar-section">
+      <h3>Authentication</h3>
+      <div class="sidebar-item" data-panel="register"><span class="method method-post">POST</span> Register</div>
+      <div class="sidebar-item active" data-panel="login"><span class="method method-post">POST</span> Login</div>
+      <div class="sidebar-item" data-panel="me"><span class="method method-get">GET</span> My Profile</div>
+      <div class="sidebar-item" data-panel="updateProfile"><span class="method method-put">PUT</span> Update Profile</div>
+      <div class="sidebar-item" data-panel="updatePassword"><span class="method method-put">PUT</span> Change Password</div>
+      <div class="sidebar-item" data-panel="forgotPassword"><span class="method method-post">POST</span> Forgot Password</div>
+      <div class="sidebar-item" data-panel="resetPassword"><span class="method method-put">PUT</span> Reset Password</div>
+    </div>
+    <!-- Lyrics -->
+    <div class="sidebar-section">
+      <h3>Lyrics</h3>
+      <div class="sidebar-item" data-panel="generateLyrics"><span class="method method-post">POST</span> Generate</div>
+      <div class="sidebar-item" data-panel="listLyrics"><span class="method method-get">GET</span> My Lyrics</div>
+      <div class="sidebar-item" data-panel="getLyrics"><span class="method method-get">GET</span> Get by ID</div>
+      <div class="sidebar-item" data-panel="updateLyrics"><span class="method method-put">PUT</span> Update</div>
+      <div class="sidebar-item" data-panel="deleteLyrics"><span class="method method-delete">DEL</span> Delete</div>
+      <div class="sidebar-item" data-panel="toggleFav"><span class="method method-patch">PATCH</span> Toggle Favorite</div>
+      <div class="sidebar-item" data-panel="lyricsStats"><span class="method method-get">GET</span> My Stats</div>
+      <div class="sidebar-item" data-panel="publicLyrics"><span class="method method-get">GET</span> Public Lyrics</div>
+    </div>
+    <!-- Admin -->
+    <div class="sidebar-section">
+      <h3>Admin</h3>
+      <div class="sidebar-item" data-panel="dashboard"><span class="method method-get">GET</span> Dashboard</div>
+      <div class="sidebar-item" data-panel="listUsers"><span class="method method-get">GET</span> List Users</div>
+      <div class="sidebar-item" data-panel="getUser"><span class="method method-get">GET</span> Get User</div>
+      <div class="sidebar-item" data-panel="adminUpdateUser"><span class="method method-put">PUT</span> Update User</div>
+      <div class="sidebar-item" data-panel="deleteUser"><span class="method method-delete">DEL</span> Delete User</div>
+      <div class="sidebar-item" data-panel="toggleRole"><span class="method method-patch">PATCH</span> Toggle Role</div>
+      <div class="sidebar-item" data-panel="toggleStatus"><span class="method method-patch">PATCH</span> Toggle Status</div>
+      <div class="sidebar-item" data-panel="listApiKeys"><span class="method method-get">GET</span> API Keys</div>
+      <div class="sidebar-item" data-panel="updateApiKey"><span class="method method-put">PUT</span> Update API Key</div>
+      <div class="sidebar-item" data-panel="testApiKey"><span class="method method-post">POST</span> Test API Key</div>
+      <div class="sidebar-item" data-panel="deleteApiKey"><span class="method method-delete">DEL</span> Clear API Key</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="panel-area">
+      <div class="request-panel" id="requestPanel">
+        <!-- Panels are rendered by JS -->
+      </div>
+      <div class="response-panel">
+        <div class="response-header">
+          <h3>Response</h3>
+          <div>
+            <span class="status-badge hidden" id="statusBadge"></span>
+            <span class="response-time" id="responseTime"></span>
+          </div>
+        </div>
+        <div class="response-body" id="responseBody">
+          <div class="response-empty">Send a request to see the response</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api/v1';
+let token = localStorage.getItem('cw_token') || '';
+let currentUser = JSON.parse(localStorage.getItem('cw_user') || 'null');
+
+// ── API Call Helper ──
+async function apiCall(method, endpoint, body = null) {
+  const responseBody = document.getElementById('responseBody');
+  const statusBadge = document.getElementById('statusBadge');
+  const responseTime = document.getElementById('responseTime');
+  responseBody.innerHTML = '<pre class="loading">Sending request...</pre>';
+  statusBadge.className = 'status-badge hidden';
+  responseTime.textContent = '';
+
+  const opts = { method, headers: {} };
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+
+  const start = performance.now();
+  try {
+    const res = await fetch(API + endpoint, opts);
+    const elapsed = Math.round(performance.now() - start);
+    const data = await res.json();
+
+    statusBadge.textContent = res.status + ' ' + res.statusText;
+    statusBadge.className = 'status-badge ' + (res.status < 300 ? 'status-2xx' : res.status < 500 ? 'status-4xx' : 'status-5xx');
+    responseTime.textContent = elapsed + 'ms';
+
+    responseBody.innerHTML = '<pre>' + syntaxHighlight(JSON.stringify(data, null, 2)) + '</pre>';
+    return { status: res.status, data };
+  } catch (err) {
+    responseBody.innerHTML = '<pre style="color:#fca5a5;">Error: ' + err.message + '</pre>';
+    return { status: 0, data: null };
+  }
+}
+
+function syntaxHighlight(json) {
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?/g, m => {
+      let cls = 'color:#6ee7b7'; // string
+      if (/:\s*$/.test(m)) cls = 'color:#93c5fd'; // key
+      else if (/true|false/.test(m)) cls = 'color:#c4b5fd'; // bool
+      else if (/null/.test(m)) cls = 'color:#64748b'; // null
+      return '<span style="' + cls + '">' + m + '</span>';
+    })
+    .replace(/\b(\d+\.?\d*)\b/g, '<span style="color:#fcd34d">$1</span>');
+}
+
+// ── Auth State ──
+function updateAuthUI() {
+  const info = document.getElementById('authInfo');
+  const badge = document.getElementById('roleBadge');
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (currentUser) {
+    info.innerHTML = 'Logged in as <strong>' + currentUser.name + '</strong> (' + currentUser.email + ')';
+    badge.textContent = currentUser.role;
+    badge.className = 'badge badge-' + currentUser.role;
+    logoutBtn.style.display = 'inline-block';
+  } else {
+    info.textContent = 'Not logged in';
+    badge.textContent = 'guest';
+    badge.className = 'badge badge-none';
+    logoutBtn.style.display = 'none';
+  }
+}
+
+function setAuth(t, user) {
+  token = t;
+  currentUser = user;
+  localStorage.setItem('cw_token', t);
+  localStorage.setItem('cw_user', JSON.stringify(user));
+  updateAuthUI();
+}
+
+async function doLogout() {
+  await apiCall('POST', '/auth/logout');
+  token = '';
+  currentUser = null;
+  localStorage.removeItem('cw_token');
+  localStorage.removeItem('cw_user');
+  updateAuthUI();
+}
+
+// ── Panel Definitions ──
+const panels = {
+  // ═══ AUTH ═══
+  login: {
+    title: 'Login', desc: 'Authenticate with email and password', url: 'POST /auth/login',
+    html: `
+      <div class="form-group"><label>Email</label><input id="loginEmail" value="admin@akashinnotech.com"></div>
+      <div class="form-group"><label>Password</label><input id="loginPass" type="password" value="Admin@123"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doLogin()">Login</button></div>
+      <hr class="separator">
+      <p style="font-size:12px;color:#64748b;">Quick login:</p>
+      <div class="btn-group" style="margin-top:8px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="quickLogin('admin@akashinnotech.com','Admin@123')">Admin</button>
+        <button class="btn btn-secondary" onclick="quickLogin('ramu@example.com','User@123')">Ramu</button>
+        <button class="btn btn-secondary" onclick="quickLogin('lakshmi@example.com','User@123')">Lakshmi</button>
+        <button class="btn btn-secondary" onclick="quickLogin('krishna@example.com','User@123')">Krishna</button>
+      </div>`
+  },
+  register: {
+    title: 'Register', desc: 'Create a new user account', url: 'POST /auth/register',
+    html: `
+      <div class="form-group"><label>Name</label><input id="regName" placeholder="Full Name"></div>
+      <div class="form-group"><label>Email</label><input id="regEmail" type="email" placeholder="user@example.com"></div>
+      <div class="form-group"><label>Password</label><input id="regPass" type="password" placeholder="Min 6 characters"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone (optional)</label><input id="regPhone"></div>
+        <div class="form-group"><label>Organization (optional)</label><input id="regOrg"></div>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doRegister()">Register</button></div>`
+  },
+  me: {
+    title: 'My Profile', desc: 'Get current logged-in user details', url: 'GET /auth/me',
+    html: `<div class="btn-group"><button class="btn btn-primary" onclick="doGetMe()">Get My Profile</button></div>`
+  },
+  updateProfile: {
+    title: 'Update Profile', desc: 'Update your profile details and preferences', url: 'PUT /auth/updatedetails',
+    html: `
+      <div class="form-group"><label>Name</label><input id="upName" placeholder="Leave blank to skip"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input id="upPhone"></div>
+        <div class="form-group"><label>Organization</label><input id="upOrg"></div>
+      </div>
+      <div class="form-group"><label>Bio</label><textarea id="upBio" rows="2" placeholder="Short bio"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Default Dialect</label>
+          <select id="upDialect"><option value="">-- Keep current --</option><option value="telangana">Telangana</option><option value="rayalaseema">Rayalaseema</option><option value="coastal">Coastal</option><option value="uttarandhra">Uttarandhra</option></select>
+        </div>
+        <div class="form-group"><label>Default Style</label>
+          <select id="upStyle"><option value="">-- Keep current --</option><option value="devotional">Devotional</option><option value="folk">Folk</option><option value="romantic">Romantic</option><option value="patriotic">Patriotic</option><option value="cinematic">Cinematic</option></select>
+        </div>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doUpdateProfile()">Update Profile</button></div>`
+  },
+  updatePassword: {
+    title: 'Change Password', desc: 'Update your password', url: 'PUT /auth/updatepassword',
+    html: `
+      <div class="form-group"><label>Current Password</label><input id="cpCurrent" type="password"></div>
+      <div class="form-group"><label>New Password</label><input id="cpNew" type="password"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doChangePassword()">Change Password</button></div>`
+  },
+  forgotPassword: {
+    title: 'Forgot Password', desc: 'Generate a password reset token', url: 'POST /auth/forgotpassword',
+    html: `
+      <div class="form-group"><label>Email</label><input id="fpEmail" type="email" placeholder="user@example.com"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doForgotPassword()">Send Reset Token</button></div>`
+  },
+  resetPassword: {
+    title: 'Reset Password', desc: 'Reset password using token', url: 'PUT /auth/resetpassword/:token',
+    html: `
+      <div class="form-group"><label>Reset Token</label><input id="rpToken" placeholder="Paste reset token here"></div>
+      <div class="form-group"><label>New Password</label><input id="rpPassword" type="password" placeholder="Min 6 characters"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doResetPassword()">Reset Password</button></div>`
+  },
+
+  // ═══ LYRICS ═══
+  generateLyrics: {
+    title: 'Generate Lyrics', desc: 'Generate Telugu lyrics using AI', url: 'POST /lyrics/generate',
+    html: `
+      <div class="form-group"><label>Theme</label><input id="glTheme" placeholder="e.g., Spring season, Love, Devotion"></div>
+      <div class="form-group"><label>Custom Lines (optional)</label><textarea id="glCustom" rows="2" placeholder="Your own lines to incorporate"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Style</label>
+          <select id="glStyle"><option value="romantic">Romantic</option><option value="devotional">Devotional</option><option value="folk">Folk</option><option value="patriotic">Patriotic</option><option value="lullaby">Lullaby</option><option value="celebration">Celebration</option><option value="philosophical">Philosophical</option><option value="cinematic">Cinematic</option></select>
+        </div>
+        <div class="form-group"><label>Dialect</label>
+          <select id="glDialect"><option value="coastal">Coastal</option><option value="telangana">Telangana</option><option value="rayalaseema">Rayalaseema</option><option value="uttarandhra">Uttarandhra</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Poetry Form</label>
+        <select id="glForm"><option value="geeyam">Geeyam (Lyrical)</option><option value="padyam">Padyam (Classical)</option><option value="janapada">Janapada (Folk)</option><option value="keertana">Keertana (Devotional)</option><option value="modern">Modern (Free verse)</option></select>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doGenerate()">Generate Lyrics</button></div>`
+  },
+  listLyrics: {
+    title: 'My Lyrics', desc: 'List your saved lyrics', url: 'GET /lyrics',
+    html: `
+      <div class="form-row">
+        <div class="form-group"><label>Style Filter</label>
+          <select id="llStyle"><option value="">All Styles</option><option value="romantic">Romantic</option><option value="devotional">Devotional</option><option value="folk">Folk</option><option value="patriotic">Patriotic</option><option value="cinematic">Cinematic</option></select>
+        </div>
+        <div class="form-group"><label>Favorites Only</label>
+          <select id="llFav"><option value="">All</option><option value="true">Favorites Only</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Page</label><input id="llPage" type="number" value="1" min="1"></div>
+        <div class="form-group"><label>Per Page</label><input id="llLimit" type="number" value="10" min="1" max="50"></div>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doListLyrics()">Fetch Lyrics</button></div>`
+  },
+  getLyrics: {
+    title: 'Get Lyrics by ID', desc: 'Retrieve a single lyrics entry', url: 'GET /lyrics/:id',
+    html: `
+      <div class="form-group"><label>Lyrics ID</label><input id="glId" placeholder="MongoDB ObjectId"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doGetLyrics()">Get Lyrics</button></div>`
+  },
+  updateLyrics: {
+    title: 'Update Lyrics', desc: 'Update title, content, tags, rating, or visibility', url: 'PUT /lyrics/:id',
+    html: `
+      <div class="form-group"><label>Lyrics ID</label><input id="ulId" placeholder="MongoDB ObjectId"></div>
+      <div class="form-group"><label>Title</label><input id="ulTitle" placeholder="New title (optional)"></div>
+      <div class="form-group"><label>Content</label><textarea id="ulContent" rows="4" placeholder="Updated lyrics content (optional)"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Rating (1-5)</label><input id="ulRating" type="number" min="1" max="5" placeholder="1-5"></div>
+        <div class="form-group"><label>Public</label>
+          <select id="ulPublic"><option value="">-- No change --</option><option value="true">Yes</option><option value="false">No</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Tags (comma separated)</label><input id="ulTags" placeholder="e.g., spring, folk, telugu"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doUpdateLyrics()">Update</button></div>`
+  },
+  deleteLyrics: {
+    title: 'Delete Lyrics', desc: 'Permanently delete a lyrics entry', url: 'DELETE /lyrics/:id',
+    html: `
+      <div class="form-group"><label>Lyrics ID</label><input id="dlId" placeholder="MongoDB ObjectId"></div>
+      <div class="btn-group"><button class="btn btn-danger" onclick="doDeleteLyrics()">Delete Lyrics</button></div>`
+  },
+  toggleFav: {
+    title: 'Toggle Favorite', desc: 'Mark or unmark lyrics as favorite', url: 'PATCH /lyrics/:id/favorite',
+    html: `
+      <div class="form-group"><label>Lyrics ID</label><input id="tfId" placeholder="MongoDB ObjectId"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doToggleFav()">Toggle Favorite</button></div>`
+  },
+  lyricsStats: {
+    title: 'My Lyrics Stats', desc: 'Get statistics about your lyrics', url: 'GET /lyrics/stats',
+    html: `<div class="btn-group"><button class="btn btn-primary" onclick="doLyricsStats()">Get Stats</button></div>`
+  },
+  publicLyrics: {
+    title: 'Public Lyrics', desc: 'Browse popular public lyrics (no auth required)', url: 'GET /lyrics/public',
+    html: `
+      <div class="form-group"><label>Limit</label><input id="plLimit" type="number" value="10" min="1" max="50"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doPublicLyrics()">Fetch Public Lyrics</button></div>`
+  },
+
+  // ═══ ADMIN ═══
+  dashboard: {
+    title: 'Admin Dashboard', desc: 'System statistics and overview (admin only)', url: 'GET /admin/dashboard',
+    html: `<div class="btn-group"><button class="btn btn-primary" onclick="doDashboard()">Load Dashboard</button></div>`
+  },
+  listUsers: {
+    title: 'List Users', desc: 'View all registered users (admin only)', url: 'GET /admin/users',
+    html: `
+      <div class="form-row">
+        <div class="form-group"><label>Role Filter</label>
+          <select id="luRole"><option value="">All</option><option value="admin">Admin</option><option value="user">User</option></select>
+        </div>
+        <div class="form-group"><label>Search</label><input id="luSearch" placeholder="Name or email"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Page</label><input id="luPage" type="number" value="1" min="1"></div>
+        <div class="form-group"><label>Per Page</label><input id="luLimit" type="number" value="20" min="1" max="100"></div>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doListUsers()">Fetch Users</button></div>`
+  },
+  getUser: {
+    title: 'Get User', desc: 'Get single user details (admin only)', url: 'GET /admin/users/:id',
+    html: `
+      <div class="form-group"><label>User ID</label><input id="guId" placeholder="MongoDB ObjectId"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doGetUser()">Get User</button></div>`
+  },
+  adminUpdateUser: {
+    title: 'Update User', desc: 'Admin update user details', url: 'PUT /admin/users/:id',
+    html: `
+      <div class="form-group"><label>User ID</label><input id="auId" placeholder="MongoDB ObjectId"></div>
+      <div class="form-group"><label>Name</label><input id="auName" placeholder="Optional"></div>
+      <div class="form-group"><label>Email</label><input id="auEmail" placeholder="Optional"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Role</label>
+          <select id="auRole"><option value="">-- No change --</option><option value="admin">Admin</option><option value="user">User</option></select>
+        </div>
+        <div class="form-group"><label>Active</label>
+          <select id="auActive"><option value="">-- No change --</option><option value="true">Active</option><option value="false">Inactive</option></select>
+        </div>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doAdminUpdateUser()">Update User</button></div>`
+  },
+  deleteUser: {
+    title: 'Delete User', desc: 'Delete a user account (admin only)', url: 'DELETE /admin/users/:id',
+    html: `
+      <div class="form-group"><label>User ID</label><input id="duId" placeholder="MongoDB ObjectId"></div>
+      <div class="checkbox-group"><input type="checkbox" id="duDeleteLyrics"><label style="font-size:13px;color:#94a3b8;">Also delete user's lyrics</label></div>
+      <div class="btn-group"><button class="btn btn-danger" onclick="doDeleteUser()">Delete User</button></div>`
+  },
+  toggleRole: {
+    title: 'Toggle User Role', desc: 'Switch user between admin and user roles', url: 'PATCH /admin/users/:id/role',
+    html: `
+      <div class="form-group"><label>User ID</label><input id="trId" placeholder="MongoDB ObjectId"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doToggleRole()">Toggle Role</button></div>`
+  },
+  toggleStatus: {
+    title: 'Toggle User Status', desc: 'Activate or deactivate a user account', url: 'PATCH /admin/users/:id/status',
+    html: `
+      <div class="form-group"><label>User ID</label><input id="tsId" placeholder="MongoDB ObjectId"></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doToggleStatus()">Toggle Status</button></div>`
+  },
+  listApiKeys: {
+    title: 'API Keys', desc: 'View all configured API services (admin only)', url: 'GET /admin/apikeys',
+    html: `<div class="btn-group"><button class="btn btn-primary" onclick="doListApiKeys()">Fetch API Keys</button></div>`
+  },
+  updateApiKey: {
+    title: 'Update API Key', desc: 'Set or update an API key for a service', url: 'PUT /admin/apikeys/:service',
+    html: `
+      <div class="form-group"><label>Service</label>
+        <select id="ukService"><option value="anthropic">Anthropic (Claude)</option><option value="suno">Suno AI</option><option value="udio">Udio</option><option value="heygen">HeyGen</option><option value="elevenlabs">ElevenLabs</option></select>
+      </div>
+      <div class="form-group"><label>API Key</label><input id="ukKey" placeholder="sk-... or API key value"></div>
+      <div class="form-group"><label>Active</label>
+        <select id="ukActive"><option value="">-- No change --</option><option value="true">Active</option><option value="false">Inactive</option></select>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doUpdateApiKey()">Update Key</button></div>`
+  },
+  testApiKey: {
+    title: 'Test API Key', desc: 'Test connectivity for an API service', url: 'POST /admin/apikeys/:service/test',
+    html: `
+      <div class="form-group"><label>Service</label>
+        <select id="tkService"><option value="anthropic">Anthropic (Claude)</option><option value="suno">Suno AI</option><option value="udio">Udio</option><option value="heygen">HeyGen</option><option value="elevenlabs">ElevenLabs</option></select>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doTestApiKey()">Test Connection</button></div>`
+  },
+  deleteApiKey: {
+    title: 'Clear API Key', desc: 'Remove stored API key for a service', url: 'DELETE /admin/apikeys/:service',
+    html: `
+      <div class="form-group"><label>Service</label>
+        <select id="dkService"><option value="anthropic">Anthropic (Claude)</option><option value="suno">Suno AI</option><option value="udio">Udio</option><option value="heygen">HeyGen</option><option value="elevenlabs">ElevenLabs</option></select>
+      </div>
+      <div class="btn-group"><button class="btn btn-danger" onclick="doClearApiKey()">Clear Key</button></div>`
+  }
+};
+
+// ── Render Panel ──
+function showPanel(name) {
+  const p = panels[name];
+  if (!p) return;
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.toggle('active', el.dataset.panel === name));
+  document.getElementById('requestPanel').innerHTML =
+    `<div class="panel-title">${p.title}</div>
+     <div class="panel-desc">${p.desc}</div>
+     <div class="endpoint-url">${p.url}</div>
+     ${p.html}`;
+}
+
+// ── Sidebar click ──
+document.querySelector('.sidebar').addEventListener('click', e => {
+  const item = e.target.closest('.sidebar-item');
+  if (item) showPanel(item.dataset.panel);
+});
+
+// ═══ ACTION HANDLERS ═══
+
+// Auth
+async function doLogin() {
+  const r = await apiCall('POST', '/auth/login', { email: document.getElementById('loginEmail').value, password: document.getElementById('loginPass').value });
+  if (r.data?.success) setAuth(r.data.token, r.data.data);
+}
+async function quickLogin(email, pass) {
+  document.getElementById('loginEmail').value = email;
+  document.getElementById('loginPass').value = pass;
+  doLogin();
+}
+async function doRegister() {
+  const body = { name: val('regName'), email: val('regEmail'), password: val('regPass') };
+  if (val('regPhone')) body.phone = val('regPhone');
+  if (val('regOrg')) body.organization = val('regOrg');
+  const r = await apiCall('POST', '/auth/register', body);
+  if (r.data?.success) setAuth(r.data.token, r.data.data);
+}
+async function doGetMe() { await apiCall('GET', '/auth/me'); }
+async function doUpdateProfile() {
+  const body = {};
+  if (val('upName')) body.name = val('upName');
+  if (val('upPhone')) body.phone = val('upPhone');
+  if (val('upOrg')) body.organization = val('upOrg');
+  if (val('upBio')) body.bio = val('upBio');
+  if (val('upDialect')) body.defaultDialect = val('upDialect');
+  if (val('upStyle')) body.defaultStyle = val('upStyle');
+  await apiCall('PUT', '/auth/updatedetails', body);
+}
+async function doChangePassword() {
+  await apiCall('PUT', '/auth/updatepassword', { currentPassword: val('cpCurrent'), newPassword: val('cpNew') });
+}
+async function doForgotPassword() {
+  await apiCall('POST', '/auth/forgotpassword', { email: val('fpEmail') });
+}
+async function doResetPassword() {
+  await apiCall('PUT', '/auth/resetpassword/' + val('rpToken'), { password: val('rpPassword') });
+}
+
+// Lyrics
+async function doGenerate() {
+  const body = { style: val('glStyle'), dialect: val('glDialect'), poetryForm: val('glForm') };
+  if (val('glTheme')) body.theme = val('glTheme');
+  if (val('glCustom')) body.customLines = val('glCustom');
+  await apiCall('POST', '/lyrics/generate', body);
+}
+async function doListLyrics() {
+  let q = `?page=${val('llPage')}&limit=${val('llLimit')}`;
+  if (val('llStyle')) q += `&style=${val('llStyle')}`;
+  if (val('llFav')) q += `&isFavorite=${val('llFav')}`;
+  await apiCall('GET', '/lyrics' + q);
+}
+async function doGetLyrics() { await apiCall('GET', '/lyrics/' + val('glId')); }
+async function doUpdateLyrics() {
+  const body = {};
+  if (val('ulTitle')) body.title = val('ulTitle');
+  if (val('ulContent')) body.content = val('ulContent');
+  if (val('ulRating')) body.rating = parseInt(val('ulRating'));
+  if (val('ulPublic')) body.isPublic = val('ulPublic') === 'true';
+  if (val('ulTags')) body.tags = val('ulTags').split(',').map(t => t.trim());
+  await apiCall('PUT', '/lyrics/' + val('ulId'), body);
+}
+async function doDeleteLyrics() { await apiCall('DELETE', '/lyrics/' + val('dlId')); }
+async function doToggleFav() { await apiCall('PATCH', '/lyrics/' + val('tfId') + '/favorite'); }
+async function doLyricsStats() { await apiCall('GET', '/lyrics/stats'); }
+async function doPublicLyrics() { await apiCall('GET', '/lyrics/public?limit=' + val('plLimit')); }
+
+// Admin
+async function doDashboard() { await apiCall('GET', '/admin/dashboard'); }
+async function doListUsers() {
+  let q = `?page=${val('luPage')}&limit=${val('luLimit')}`;
+  if (val('luRole')) q += `&role=${val('luRole')}`;
+  if (val('luSearch')) q += `&search=${encodeURIComponent(val('luSearch'))}`;
+  await apiCall('GET', '/admin/users' + q);
+}
+async function doGetUser() { await apiCall('GET', '/admin/users/' + val('guId')); }
+async function doAdminUpdateUser() {
+  const body = {};
+  if (val('auName')) body.name = val('auName');
+  if (val('auEmail')) body.email = val('auEmail');
+  if (val('auRole')) body.role = val('auRole');
+  if (val('auActive')) body.isActive = val('auActive') === 'true';
+  await apiCall('PUT', '/admin/users/' + val('auId'), body);
+}
+async function doDeleteUser() {
+  const q = document.getElementById('duDeleteLyrics').checked ? '?deleteLyrics=true' : '';
+  await apiCall('DELETE', '/admin/users/' + val('duId') + q);
+}
+async function doToggleRole() { await apiCall('PATCH', '/admin/users/' + val('trId') + '/role'); }
+async function doToggleStatus() { await apiCall('PATCH', '/admin/users/' + val('tsId') + '/status'); }
+async function doListApiKeys() { await apiCall('GET', '/admin/apikeys'); }
+async function doUpdateApiKey() {
+  const body = {};
+  if (val('ukKey')) body.key = val('ukKey');
+  if (val('ukActive')) body.isActive = val('ukActive') === 'true';
+  await apiCall('PUT', '/admin/apikeys/' + val('ukService'), body);
+}
+async function doTestApiKey() { await apiCall('POST', '/admin/apikeys/' + val('tkService') + '/test'); }
+async function doClearApiKey() { await apiCall('DELETE', '/admin/apikeys/' + val('dkService')); }
+
+// Utility
+function val(id) { return document.getElementById(id)?.value?.trim() || ''; }
+
+// ── Init ──
+updateAuthUI();
+showPanel('login');
+</script>
+</body>
+</html>
