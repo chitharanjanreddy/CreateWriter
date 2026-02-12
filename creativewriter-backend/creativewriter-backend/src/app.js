@@ -10,6 +10,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 
+const path = require('path');
 const config = require('./config/config');
 const routes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
@@ -57,7 +58,7 @@ if (config.env === 'development') {
 }
 
 // Static files
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // API Routes
 app.use(`/api/${config.apiVersion}`, routes);
