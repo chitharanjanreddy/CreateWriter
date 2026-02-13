@@ -238,31 +238,32 @@ export default function MediaPanel({ lyricsId, lyrics }) {
                             {(song.audioUrl || song.streamAudioUrl) && (
                               <audio
                                 controls
-                                style={{ width: '100%', height: 40 }}
-                                src={song.streamAudioUrl || song.audioUrl}
-                                crossOrigin="anonymous"
+                                preload="auto"
+                                style={{ width: '100%', height: 44, borderRadius: 8 }}
                                 onError={(e) => {
-                                  // Fallback: try the other URL if first fails
                                   const el = e.target;
-                                  const alt = song.audioUrl && el.src !== song.audioUrl ? song.audioUrl : song.streamAudioUrl;
-                                  if (alt && el.src !== alt) el.src = alt;
+                                  const urls = [song.audioUrl, song.streamAudioUrl].filter(Boolean);
+                                  const current = el.getAttribute('data-src-index') || '0';
+                                  const next = parseInt(current) + 1;
+                                  if (next < urls.length) {
+                                    el.setAttribute('data-src-index', String(next));
+                                    el.src = urls[next];
+                                  }
                                 }}
-                              />
+                              >
+                                <source src={song.audioUrl || song.streamAudioUrl} type="audio/mpeg" />
+                                {song.streamAudioUrl && song.audioUrl && <source src={song.streamAudioUrl} type="audio/mpeg" />}
+                              </audio>
                             )}
                             <div className="btn-group" style={{ marginTop: 8 }}>
-                              {song.id && (
-                                <a href={`https://suno.com/song/${song.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary" style={{ color: 'white' }}>
-                                  Play on Suno
-                                </a>
-                              )}
                               {song.audioUrl && (
-                                <a href={song.audioUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost">
+                                <a href={song.audioUrl} download={`${song.title || 'song'}.mp3`} className="btn btn-sm btn-primary" style={{ color: 'white' }}>
                                   Download MP3
                                 </a>
                               )}
-                              {song.streamAudioUrl && (
-                                <a href={song.streamAudioUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost">
-                                  Stream
+                              {song.id && (
+                                <a href={`https://suno.com/song/${song.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost">
+                                  View on Suno
                                 </a>
                               )}
                             </div>
