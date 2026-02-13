@@ -19,7 +19,7 @@ export default function MediaPanel({ lyricsId, lyrics }) {
   const [voiceId, setVoiceId] = useState('');
 
   // Video config
-  const [avatarId, setAvatarId] = useState('default');
+  const [avatarId, setAvatarId] = useState('af78fd01567347b3a6859ea1e4a46410');
 
   useEffect(() => {
     api.getVoices().then(r => setVoices(r.data)).catch(() => {});

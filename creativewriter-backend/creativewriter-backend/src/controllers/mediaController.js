@@ -167,7 +167,7 @@ const generateVideo = asyncHandler(async (req, res, next) => {
           video_inputs: [{
             character: {
               type: 'avatar',
-              avatar_id: avatarId || 'default',
+              avatar_id: avatarId || 'af78fd01567347b3a6859ea1e4a46410',
               avatar_style: 'normal'
             },
             voice: {
@@ -420,10 +420,10 @@ const getAvatars = asyncHandler(async (req, res, next) => {
     return res.status(200).json({
       success: true,
       data: [
-        { avatar_id: 'default', name: 'Default Avatar' },
-        { avatar_id: 'Anna_public_3_20240108', name: 'Anna' },
-        { avatar_id: 'josh_lite3_20230714', name: 'Josh' },
-        { avatar_id: 'Kayla-incasualsuit-20220818', name: 'Kayla' }
+        { avatar_id: 'af78fd01567347b3a6859ea1e4a46410', name: 'Chitharanjan Reddy Padigapati' },
+        { avatar_id: 'a2e70cb3b3a64aec82c22e77683bb25f', name: 'Chitharanjan Reddy Padigapati (2)' },
+        { avatar_id: 'b82c983a812c45fca8b8d5ba864cc26d', name: 'Chitharanjan Reddy Padigapati (3)' },
+        { avatar_id: 'd76ce97ba1c647f4915bc6a99fdfb8e8', name: 'Chitharanjan Reddy Padigapati (4)' }
       ],
       source: 'defaults'
     });
