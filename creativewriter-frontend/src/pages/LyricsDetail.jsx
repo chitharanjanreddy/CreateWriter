@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import MediaPanel from '../components/MediaPanel';
 
 export default function LyricsDetail() {
   const { id } = useParams();
@@ -144,6 +145,8 @@ export default function LyricsDetail() {
           </div>
         </div>
       )}
+
+      {!editing && <MediaPanel lyricsId={id} lyrics={lyrics} />}
     </div>
   );
 }

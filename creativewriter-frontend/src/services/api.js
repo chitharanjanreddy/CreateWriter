@@ -50,6 +50,14 @@ class ApiService {
   getLyricsStats() { return this.request('GET', '/lyrics/stats'); }
   getPublicLyrics(limit = 10) { return this.request('GET', `/lyrics/public?limit=${limit}`); }
 
+  // Media
+  generateMusic(lyricsId, body = {}) { return this.request('POST', `/media/${lyricsId}/music`, body); }
+  generateVideo(lyricsId, body = {}) { return this.request('POST', `/media/${lyricsId}/video`, body); }
+  generateVoice(lyricsId, body = {}) { return this.request('POST', `/media/${lyricsId}/voice`, body); }
+  checkVideoStatus(videoId) { return this.request('GET', `/media/video/${videoId}/status`); }
+  getVoices() { return this.request('GET', '/media/voices'); }
+  getAvatars() { return this.request('GET', '/media/avatars'); }
+
   // Admin
   getDashboard() { return this.request('GET', '/admin/dashboard'); }
   getUsers(params = {}) {
