@@ -173,7 +173,7 @@ const generateVideo = asyncHandler(async (req, res, next) => {
             voice: {
               type: 'text',
               input_text: lyrics.content.substring(0, 1500),
-              voice_id: voiceId || 'te-IN-MohanNeural'
+              voice_id: voiceId || '9d50356dea1440bd8af1dcc0f618e161'
             },
             background: {
               type: 'color',
