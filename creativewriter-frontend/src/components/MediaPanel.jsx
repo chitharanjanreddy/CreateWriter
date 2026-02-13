@@ -234,16 +234,39 @@ export default function MediaPanel({ lyricsId, lyrics }) {
                               {song.tags && <p className="text-sm text-muted" style={{ marginTop: 2 }}>{song.tags}</p>}
                             </div>
                           </div>
-                          {(song.audioUrl || song.streamAudioUrl) && (
-                            <div style={{ marginTop: 10 }}>
-                              <audio controls style={{ width: '100%', height: 40 }} src={song.streamAudioUrl || song.audioUrl} />
-                              <div className="btn-group" style={{ marginTop: 8 }}>
-                                <a href={song.audioUrl || song.streamAudioUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary" style={{ color: 'white' }}>
+                          <div style={{ marginTop: 10 }}>
+                            {(song.audioUrl || song.streamAudioUrl) && (
+                              <audio
+                                controls
+                                style={{ width: '100%', height: 40 }}
+                                src={song.streamAudioUrl || song.audioUrl}
+                                crossOrigin="anonymous"
+                                onError={(e) => {
+                                  // Fallback: try the other URL if first fails
+                                  const el = e.target;
+                                  const alt = song.audioUrl && el.src !== song.audioUrl ? song.audioUrl : song.streamAudioUrl;
+                                  if (alt && el.src !== alt) el.src = alt;
+                                }}
+                              />
+                            )}
+                            <div className="btn-group" style={{ marginTop: 8 }}>
+                              {song.id && (
+                                <a href={`https://suno.com/song/${song.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary" style={{ color: 'white' }}>
+                                  Play on Suno
+                                </a>
+                              )}
+                              {song.audioUrl && (
+                                <a href={song.audioUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost">
                                   Download MP3
                                 </a>
-                              </div>
+                              )}
+                              {song.streamAudioUrl && (
+                                <a href={song.streamAudioUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost">
+                                  Stream
+                                </a>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </div>
                       ))}
                     </div>
