@@ -223,27 +223,29 @@ export default function MediaPanel({ lyricsId, lyrics }) {
                     </p>
                   )}
                   {result.songs?.length > 0 && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 12 }}>
                       {result.songs.map((song, i) => (
-                        <div key={i} style={{ marginBottom: 8 }}>
-                          {song.title && <p className="text-sm" style={{ marginBottom: 4 }}><strong>{song.title}</strong></p>}
-                          {song.audioUrl && (
-                            <div className="btn-group">
-                              <a href={song.audioUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary" style={{ color: 'white' }}>
-                                Listen to Music
-                              </a>
+                        <div key={i} style={{ background: '#0a0e1a', border: '1px solid #1e293b', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                            {song.imageUrl && <img src={song.imageUrl} alt={song.title} style={{ width: 80, height: 80, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+                            <div style={{ flex: 1 }}>
+                              {song.title && <p style={{ fontWeight: 600, marginBottom: 4, color: '#f8fafc' }}>{song.title}</p>}
+                              {song.duration && <p className="text-sm text-muted">{Math.floor(song.duration / 60)}:{String(Math.floor(song.duration % 60)).padStart(2, '0')}</p>}
+                              {song.tags && <p className="text-sm text-muted" style={{ marginTop: 2 }}>{song.tags}</p>}
+                            </div>
+                          </div>
+                          {(song.audioUrl || song.streamAudioUrl) && (
+                            <div style={{ marginTop: 10 }}>
+                              <audio controls style={{ width: '100%', height: 40 }} src={song.streamAudioUrl || song.audioUrl} />
+                              <div className="btn-group" style={{ marginTop: 8 }}>
+                                <a href={song.audioUrl || song.streamAudioUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary" style={{ color: 'white' }}>
+                                  Download MP3
+                                </a>
+                              </div>
                             </div>
                           )}
-                          {song.imageUrl && <img src={song.imageUrl} alt={song.title} style={{ width: 120, borderRadius: 8, marginTop: 6 }} />}
                         </div>
                       ))}
-                    </div>
-                  )}
-                  {!result.songs?.length && result.url && (
-                    <div style={{ marginTop: 8 }}>
-                      <a href={result.url} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary" style={{ color: 'white' }}>
-                        Listen to Music
-                      </a>
                     </div>
                   )}
                   {result.id && <p className="text-sm text-muted" style={{ marginTop: 4 }}>Task ID: {result.id}</p>}

@@ -512,8 +512,44 @@ const checkMusicStatus = asyncHandler(async (req, res, next) => {
  */
 const sunoCallback = asyncHandler(async (req, res) => {
   console.log('Suno callback received:', JSON.stringify(req.body));
-  // Store or process the callback data as needed
   res.status(200).json({ success: true, message: 'Callback received' });
+});
+
+/**
+ * @desc    Proxy audio stream from external URL
+ * @route   GET /api/v1/media/audio-proxy
+ * @access  Private
+ */
+const audioProxy = asyncHandler(async (req, res, next) => {
+  const { url } = req.query;
+  if (!url) {
+    return next(new AppError('URL parameter required', 400));
+  }
+
+  try {
+    // Use Node.js native global fetch (undici) which handles modern TLS better
+    const response = await globalThis.fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      redirect: 'follow'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upstream error: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    const contentLength = response.headers.get('content-length');
+
+    res.setHeader('Content-Type', contentType);
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
+    const arrayBuf = await response.arrayBuffer();
+    res.send(Buffer.from(arrayBuf));
+  } catch (error) {
+    return next(new AppError('Failed to proxy audio: ' + error.message, 502));
+  }
 });
 
 module.exports = {
@@ -522,6 +558,7 @@ module.exports = {
   checkVideoStatus,
   checkMusicStatus,
   sunoCallback,
+  audioProxy,
   generateVoice,
   getVoices,
   getAvatars

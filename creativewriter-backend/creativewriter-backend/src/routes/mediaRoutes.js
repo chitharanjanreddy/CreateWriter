@@ -13,6 +13,7 @@ const {
   checkVideoStatus,
   checkMusicStatus,
   sunoCallback,
+  audioProxy,
   generateVoice,
   getVoices,
   getAvatars
@@ -27,6 +28,7 @@ router.use(protect);
 // Available resources
 router.get('/voices', getVoices);
 router.get('/avatars', getAvatars);
+router.get('/audio-proxy', audioProxy);
 
 // Generation endpoints (per lyrics)
 router.post('/:lyricsId/music', generateMusic);
