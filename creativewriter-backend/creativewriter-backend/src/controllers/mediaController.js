@@ -310,8 +310,8 @@ const generateVoice = asyncHandler(async (req, res, next) => {
 
       if (response.ok) {
         // ElevenLabs returns audio binary - convert to base64
-        const buffer = await response.buffer();
-        const base64Audio = buffer.toString('base64');
+        const arrayBuf = await response.arrayBuffer();
+        const base64Audio = Buffer.from(arrayBuf).toString('base64');
 
         result = {
           platform: 'elevenlabs',
