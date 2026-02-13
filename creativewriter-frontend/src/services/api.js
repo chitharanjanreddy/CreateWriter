@@ -55,6 +55,7 @@ class ApiService {
   generateVideo(lyricsId, body = {}) { return this.request('POST', `/media/${lyricsId}/video`, body); }
   generateVoice(lyricsId, body = {}) { return this.request('POST', `/media/${lyricsId}/voice`, body); }
   checkVideoStatus(videoId) { return this.request('GET', `/media/video/${videoId}/status`); }
+  checkMusicStatus(taskId) { return this.request('GET', `/media/music/${taskId}/status`); }
   getVoices() { return this.request('GET', '/media/voices'); }
   getAvatars() { return this.request('GET', '/media/avatars'); }
 

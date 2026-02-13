@@ -31,8 +31,33 @@ export default function MediaPanel({ lyricsId, lyrics }) {
     try {
       const res = await api.generateMusic(lyricsId, { platform: musicPlatform, tempo, instrumental });
       setResult(res.data);
+      // Poll for music status if we got a task ID
+      if (res.data.id && res.data.status === 'processing') {
+        pollMusicStatus(res.data.id);
+      }
     } catch (err) { setError(err.error || 'Music generation failed'); }
     setLoading(false);
+  };
+
+  const pollMusicStatus = (taskId) => {
+    let attempts = 0;
+    const maxAttempts = 30; // ~5 minutes at 10s intervals
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await api.checkMusicStatus(taskId);
+        const songs = res.data?.songs || [];
+        if (res.data?.status === 'completed' && songs.length > 0 && songs[0].audioUrl) {
+          clearInterval(interval);
+          setResult(prev => ({ ...prev, status: 'completed', songs, message: 'Music is ready!' }));
+        } else if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          setResult(prev => ({ ...prev, message: 'Still processing. Check back later with task ID: ' + taskId }));
+        }
+      } catch {
+        if (attempts >= maxAttempts) clearInterval(interval);
+      }
+    }, 10000);
   };
 
   const handleGenerateVideo = async () => {
@@ -191,15 +216,37 @@ export default function MediaPanel({ lyricsId, lyrics }) {
               {result.platform === 'suno' || result.platform === 'udio' ? (
                 <>
                   <strong>Music generation {result.status === 'processing' ? 'started' : result.status}!</strong>
-                  {result.url && (
+                  {result.status === 'processing' && (
+                    <p style={{ marginTop: 4 }}>
+                      <span className="spinner" style={{ width: 14, height: 14, display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }} />
+                      Generating your music... This may take 1-3 minutes.
+                    </p>
+                  )}
+                  {result.songs?.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      {result.songs.map((song, i) => (
+                        <div key={i} style={{ marginBottom: 8 }}>
+                          {song.title && <p className="text-sm" style={{ marginBottom: 4 }}><strong>{song.title}</strong></p>}
+                          {song.audioUrl && (
+                            <div className="btn-group">
+                              <a href={song.audioUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary" style={{ color: 'white' }}>
+                                Listen to Music
+                              </a>
+                            </div>
+                          )}
+                          {song.imageUrl && <img src={song.imageUrl} alt={song.title} style={{ width: 120, borderRadius: 8, marginTop: 6 }} />}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!result.songs?.length && result.url && (
                     <div style={{ marginTop: 8 }}>
                       <a href={result.url} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary" style={{ color: 'white' }}>
                         Listen to Music
                       </a>
                     </div>
                   )}
-                  {result.status === 'processing' && <p style={{ marginTop: 4 }}>Your music is being generated. Check back shortly.</p>}
-                  {result.id && <p className="text-sm" style={{ marginTop: 4 }}>Track ID: {result.id}</p>}
+                  {result.id && <p className="text-sm text-muted" style={{ marginTop: 4 }}>Task ID: {result.id}</p>}
                 </>
               ) : null}
 

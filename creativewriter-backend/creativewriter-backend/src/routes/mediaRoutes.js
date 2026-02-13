@@ -11,12 +11,17 @@ const {
   generateMusic,
   generateVideo,
   checkVideoStatus,
+  checkMusicStatus,
+  sunoCallback,
   generateVoice,
   getVoices,
   getAvatars
 } = require('../controllers/mediaController');
 
-// All routes require authentication
+// Suno callback (public - no auth needed)
+router.post('/callback/suno', sunoCallback);
+
+// All remaining routes require authentication
 router.use(protect);
 
 // Available resources
@@ -28,7 +33,8 @@ router.post('/:lyricsId/music', generateMusic);
 router.post('/:lyricsId/video', generateVideo);
 router.post('/:lyricsId/voice', generateVoice);
 
-// Status check
+// Status checks
 router.get('/video/:videoId/status', checkVideoStatus);
+router.get('/music/:taskId/status', checkMusicStatus);
 
 module.exports = router;

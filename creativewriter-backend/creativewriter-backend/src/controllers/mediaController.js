@@ -34,36 +34,42 @@ const generateMusic = asyncHandler(async (req, res, next) => {
 
   if (platform === 'suno' && sunoKey) {
     try {
-      const response = await fetch('https://api.suno.ai/v1/songs', {
+      // Build style tags for Suno
+      const styleTags = [lyrics.style, 'telugu', lyrics.dialect, tempo || 'medium tempo'].filter(Boolean).join(', ');
+
+      const response = await fetch('https://api.sunoapi.org/api/v1/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sunoKey}`
         },
         body: JSON.stringify({
-          prompt: lyrics.content.substring(0, 3000),
-          title: lyrics.title,
-          tags: `${lyrics.style}, telugu, ${lyrics.dialect}, ${tempo || 'medium tempo'}`,
-          make_instrumental: instrumental || false
+          customMode: true,
+          instrumental: instrumental || false,
+          model: 'V4_5ALL',
+          prompt: instrumental ? '' : lyrics.content.substring(0, 3000),
+          style: styleTags.substring(0, 200),
+          title: lyrics.title.substring(0, 80),
+          callBackUrl: `${req.protocol}://${req.get('host')}/api/v1/media/callback/suno`
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+
+      if (response.ok && data.code === 200) {
         result = {
           platform: 'suno',
-          id: data.id || data.song_id,
-          url: data.audio_url || data.url || null,
-          status: data.status || 'processing',
-          data: data
+          id: data.data?.taskId || data.taskId,
+          status: 'processing',
+          message: 'Music generation started. Songs will be ready in 1-3 minutes.',
+          data: data.data || data
         };
 
         // Record usage
         const apiKeyDoc = await ApiKey.findOne({ service: 'suno' });
         if (apiKeyDoc) await apiKeyDoc.recordUsage();
       } else {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || errData.message || `Suno API error: ${response.status}`);
+        throw new Error(data.msg || data.message || `Suno API error: ${response.status}`);
       }
     } catch (error) {
       console.error('Suno API error:', error.message);
@@ -449,10 +455,73 @@ const getAvatars = asyncHandler(async (req, res, next) => {
   }
 });
 
+/**
+ * @desc    Check Suno music generation status
+ * @route   GET /api/v1/media/music/:taskId/status
+ * @access  Private
+ */
+const checkMusicStatus = asyncHandler(async (req, res, next) => {
+  const sunoKey = await ApiKey.getKeyForService('suno');
+
+  if (!sunoKey) {
+    return next(new AppError('Suno API key not configured', 400, 'NO_API_KEY'));
+  }
+
+  try {
+    const response = await fetch(`https://api.sunoapi.org/api/v1/generate/record-info?taskId=${req.params.taskId}`, {
+      headers: { 'Authorization': `Bearer ${sunoKey}` }
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.code === 200 && data.data) {
+      const sunoData = data.data.response?.sunoData || [];
+      const status = data.data.status;
+      const isCompleted = status === 'SUCCESS' || status === 'FIRST_SUCCESS';
+
+      res.status(200).json({
+        success: true,
+        data: {
+          taskId: req.params.taskId,
+          status: isCompleted ? 'completed' : status === 'PENDING' || status === 'TEXT_SUCCESS' ? 'processing' : 'error',
+          rawStatus: status,
+          errorMessage: data.data.errorMessage || null,
+          songs: sunoData.map(s => ({
+            id: s.id,
+            title: s.title,
+            audioUrl: s.audioUrl,
+            streamAudioUrl: s.streamAudioUrl,
+            imageUrl: s.imageUrl,
+            duration: s.duration,
+            tags: s.tags
+          }))
+        }
+      });
+    } else {
+      throw new Error(data.msg || `API error: ${response.status}`);
+    }
+  } catch (error) {
+    return next(new AppError('Failed to check music status: ' + error.message, 500));
+  }
+});
+
+/**
+ * @desc    Suno callback webhook
+ * @route   POST /api/v1/media/callback/suno
+ * @access  Public (called by Suno API)
+ */
+const sunoCallback = asyncHandler(async (req, res) => {
+  console.log('Suno callback received:', JSON.stringify(req.body));
+  // Store or process the callback data as needed
+  res.status(200).json({ success: true, message: 'Callback received' });
+});
+
 module.exports = {
   generateMusic,
   generateVideo,
   checkVideoStatus,
+  checkMusicStatus,
+  sunoCallback,
   generateVoice,
   getVoices,
   getAvatars
