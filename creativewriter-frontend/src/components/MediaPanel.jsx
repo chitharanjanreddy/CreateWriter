@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { useSubscription } from '../context/SubscriptionContext';
+import UsageIndicator from './UsageIndicator';
 import api from '../services/api';
 import MusicPlayer from './MusicPlayer';
 
 export default function MediaPanel({ lyricsId, lyrics }) {
+  const { canUse, getRemaining, refresh } = useSubscription();
   const [activeTab, setActiveTab] = useState('music');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -22,6 +26,13 @@ export default function MediaPanel({ lyricsId, lyrics }) {
   // Video config
   const [avatarId, setAvatarId] = useState('af78fd01567347b3a6859ea1e4a46410');
 
+  const musicAllowed = canUse('music');
+  const videoAllowed = canUse('video');
+  const voiceAllowed = canUse('voice');
+  const musicInfo = getRemaining('music');
+  const videoInfo = getRemaining('video');
+  const voiceInfo = getRemaining('voice');
+
   useEffect(() => {
     api.getVoices().then(r => setVoices(r.data)).catch(() => {});
     api.getAvatars().then(r => setAvatars(r.data)).catch(() => {});
@@ -32,17 +43,23 @@ export default function MediaPanel({ lyricsId, lyrics }) {
     try {
       const res = await api.generateMusic(lyricsId, { platform: musicPlatform, tempo, instrumental });
       setResult(res.data);
-      // Poll for music status if we got a task ID
+      refresh();
       if (res.data.id && res.data.status === 'processing') {
         pollMusicStatus(res.data.id);
       }
-    } catch (err) { setError(err.error || 'Music generation failed'); }
+    } catch (err) {
+      if (err.code === 'USAGE_LIMIT_REACHED' || err.code === 'FEATURE_NOT_AVAILABLE') {
+        setError(err.error);
+      } else {
+        setError(err.error || 'Music generation failed');
+      }
+    }
     setLoading(false);
   };
 
   const pollMusicStatus = (taskId) => {
     let attempts = 0;
-    const maxAttempts = 30; // ~5 minutes at 10s intervals
+    const maxAttempts = 30;
     const interval = setInterval(async () => {
       attempts++;
       try {
@@ -66,7 +83,14 @@ export default function MediaPanel({ lyricsId, lyrics }) {
     try {
       const res = await api.generateVideo(lyricsId, { avatarId });
       setResult(res.data);
-    } catch (err) { setError(err.error || 'Video generation failed'); }
+      refresh();
+    } catch (err) {
+      if (err.code === 'USAGE_LIMIT_REACHED' || err.code === 'FEATURE_NOT_AVAILABLE') {
+        setError(err.error);
+      } else {
+        setError(err.error || 'Video generation failed');
+      }
+    }
     setLoading(false);
   };
 
@@ -75,12 +99,18 @@ export default function MediaPanel({ lyricsId, lyrics }) {
     try {
       const res = await api.generateVoice(lyricsId, { voiceId: voiceId || undefined });
       setResult(res.data);
-      // Auto-play audio if we got base64
+      refresh();
       if (res.data.audioBase64) {
         const audio = new Audio(`data:${res.data.contentType};base64,${res.data.audioBase64}`);
         audioRef.current = audio;
       }
-    } catch (err) { setError(err.error || 'Voice generation failed'); }
+    } catch (err) {
+      if (err.code === 'USAGE_LIMIT_REACHED' || err.code === 'FEATURE_NOT_AVAILABLE') {
+        setError(err.error);
+      } else {
+        setError(err.error || 'Voice generation failed');
+      }
+    }
     setLoading(false);
   };
 
@@ -96,6 +126,26 @@ export default function MediaPanel({ lyricsId, lyrics }) {
     link.click();
   };
 
+  const renderLimitWarning = (type, allowed, info) => {
+    if (info.limit === 0) {
+      return (
+        <div className="alert alert-warning" style={{ marginTop: 8 }}>
+          {type} generation is not available on your current plan.
+          <Link to="/pricing" className="btn btn-xs btn-primary" style={{ marginLeft: 8 }}>Upgrade</Link>
+        </div>
+      );
+    }
+    if (!allowed && info.limit > 0) {
+      return (
+        <div className="alert alert-warning" style={{ marginTop: 8 }}>
+          {type} limit reached ({info.current}/{info.limit}).
+          <Link to="/pricing" className="btn btn-xs btn-primary" style={{ marginLeft: 8 }}>Upgrade</Link>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="card media-panel">
       <h3>Media Generation</h3>
@@ -105,32 +155,34 @@ export default function MediaPanel({ lyricsId, lyrics }) {
 
       <div className="tab-bar">
         <button className={`tab ${activeTab === 'music' ? 'active' : ''}`} onClick={() => { setActiveTab('music'); setResult(null); setError(''); }}>
-          🎵 Music (Suno/Udio)
+          🎵 Music
         </button>
         <button className={`tab ${activeTab === 'video' ? 'active' : ''}`} onClick={() => { setActiveTab('video'); setResult(null); setError(''); }}>
-          🎬 Video (HeyGen)
+          🎬 Video
         </button>
         <button className={`tab ${activeTab === 'voice' ? 'active' : ''}`} onClick={() => { setActiveTab('voice'); setResult(null); setError(''); }}>
-          🗣️ Voice (ElevenLabs)
+          🗣️ Voice
         </button>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      {/* ── Music Tab ── */}
+      {/* Music Tab */}
       {activeTab === 'music' && (
         <div className="media-form">
-          <div className="form-row">
+          <UsageIndicator type="music" />
+          {renderLimitWarning('Music', musicAllowed, musicInfo)}
+          <div className="form-row" style={{ marginTop: 12 }}>
             <div className="form-group">
               <label>Platform</label>
-              <select value={musicPlatform} onChange={e => setMusicPlatform(e.target.value)}>
+              <select value={musicPlatform} onChange={e => setMusicPlatform(e.target.value)} disabled={!musicAllowed}>
                 <option value="suno">Suno AI</option>
                 <option value="udio">Udio</option>
               </select>
             </div>
             <div className="form-group">
               <label>Tempo</label>
-              <select value={tempo} onChange={e => setTempo(e.target.value)}>
+              <select value={tempo} onChange={e => setTempo(e.target.value)} disabled={!musicAllowed}>
                 <option value="slow tempo">Slow</option>
                 <option value="medium tempo">Medium</option>
                 <option value="fast tempo">Fast</option>
@@ -140,42 +192,46 @@ export default function MediaPanel({ lyricsId, lyrics }) {
           </div>
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="checkbox" checked={instrumental} onChange={e => setInstrumental(e.target.checked)} style={{ width: 'auto' }} />
+              <input type="checkbox" checked={instrumental} onChange={e => setInstrumental(e.target.checked)} style={{ width: 'auto' }} disabled={!musicAllowed} />
               Instrumental only (no vocals)
             </label>
           </div>
-          <button className="btn btn-primary btn-full" onClick={handleGenerateMusic} disabled={loading}>
-            {loading ? 'Generating Music...' : `Generate Music with ${musicPlatform === 'suno' ? 'Suno' : 'Udio'}`}
+          <button className="btn btn-primary btn-full" onClick={handleGenerateMusic} disabled={loading || !musicAllowed}>
+            {loading ? 'Generating Music...' : !musicAllowed ? 'Upgrade to Generate Music' : `Generate Music with ${musicPlatform === 'suno' ? 'Suno' : 'Udio'}`}
           </button>
         </div>
       )}
 
-      {/* ── Video Tab ── */}
+      {/* Video Tab */}
       {activeTab === 'video' && (
         <div className="media-form">
-          <div className="form-group">
+          <UsageIndicator type="video" />
+          {renderLimitWarning('Video', videoAllowed, videoInfo)}
+          <div className="form-group" style={{ marginTop: 12 }}>
             <label>Avatar</label>
-            <select value={avatarId} onChange={e => setAvatarId(e.target.value)}>
+            <select value={avatarId} onChange={e => setAvatarId(e.target.value)} disabled={!videoAllowed}>
               {avatars.map(a => (
                 <option key={a.avatar_id} value={a.avatar_id}>{a.name}</option>
               ))}
             </select>
           </div>
           <p className="text-muted text-sm" style={{ marginBottom: 12 }}>
-            The avatar will speak/perform your lyrics as a video. Video generation typically takes 2-5 minutes.
+            The avatar will speak/perform your lyrics as a video.
           </p>
-          <button className="btn btn-primary btn-full" onClick={handleGenerateVideo} disabled={loading}>
-            {loading ? 'Generating Video...' : 'Generate Video with HeyGen'}
+          <button className="btn btn-primary btn-full" onClick={handleGenerateVideo} disabled={loading || !videoAllowed}>
+            {loading ? 'Generating Video...' : !videoAllowed ? 'Upgrade to Generate Video' : 'Generate Video with HeyGen'}
           </button>
         </div>
       )}
 
-      {/* ── Voice Tab ── */}
+      {/* Voice Tab */}
       {activeTab === 'voice' && (
         <div className="media-form">
-          <div className="form-group">
+          <UsageIndicator type="voice" />
+          {renderLimitWarning('Voice', voiceAllowed, voiceInfo)}
+          <div className="form-group" style={{ marginTop: 12 }}>
             <label>Voice</label>
-            <select value={voiceId} onChange={e => setVoiceId(e.target.value)}>
+            <select value={voiceId} onChange={e => setVoiceId(e.target.value)} disabled={!voiceAllowed}>
               <option value="">Default (Rachel)</option>
               {voices.map(v => (
                 <option key={v.voice_id} value={v.voice_id}>{v.name} ({v.language})</option>
@@ -185,13 +241,13 @@ export default function MediaPanel({ lyricsId, lyrics }) {
           <p className="text-muted text-sm" style={{ marginBottom: 12 }}>
             Uses ElevenLabs multilingual v2 model for Telugu speech synthesis.
           </p>
-          <button className="btn btn-primary btn-full" onClick={handleGenerateVoice} disabled={loading}>
-            {loading ? 'Generating Voice...' : 'Generate Voice with ElevenLabs'}
+          <button className="btn btn-primary btn-full" onClick={handleGenerateVoice} disabled={loading || !voiceAllowed}>
+            {loading ? 'Generating Voice...' : !voiceAllowed ? 'Upgrade to Generate Voice' : 'Generate Voice with ElevenLabs'}
           </button>
         </div>
       )}
 
-      {/* ── Loading ── */}
+      {/* Loading */}
       {loading && (
         <div className="empty-state" style={{ padding: '20px 0' }}>
           <div className="spinner" />
@@ -199,7 +255,7 @@ export default function MediaPanel({ lyricsId, lyrics }) {
         </div>
       )}
 
-      {/* ── Result ── */}
+      {/* Result */}
       {result && !loading && (
         <div className="media-result">
           {result.demo ? (
@@ -220,7 +276,7 @@ export default function MediaPanel({ lyricsId, lyrics }) {
                   {result.status === 'processing' && (
                     <p style={{ marginTop: 4 }}>
                       <span className="spinner" style={{ width: 14, height: 14, display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }} />
-                      Generating your music... This may take 1-3 minutes.
+                      Generating your music...
                     </p>
                   )}
                   {result.songs?.length > 0 && (
@@ -254,7 +310,7 @@ export default function MediaPanel({ lyricsId, lyrics }) {
         </div>
       )}
 
-      {/* ── Previous Media ── */}
+      {/* Previous Media */}
       {(lyrics?.musicGenerated?.url || lyrics?.videoGenerated?.url) && (
         <div style={{ marginTop: 16 }}>
           <h4 style={{ fontSize: 14, color: '#94a3b8', marginBottom: 8 }}>Previously Generated</h4>

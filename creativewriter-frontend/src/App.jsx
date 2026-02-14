@@ -9,9 +9,12 @@ import MyLyrics from './pages/MyLyrics';
 import LyricsDetail from './pages/LyricsDetail';
 import PublicLyrics from './pages/PublicLyrics';
 import Profile from './pages/Profile';
+import Pricing from './pages/Pricing';
+import Subscription from './pages/Subscription';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import ApiKeys from './pages/admin/ApiKeys';
+import SubscriptionManagement from './pages/admin/SubscriptionManagement';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -33,6 +36,9 @@ export default function App() {
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/" /> : <Register />} />
       <Route path="/explore" element={<PublicLyrics />} />
+      <Route path="/pricing" element={user ? <ProtectedRoute><Layout /></ProtectedRoute> : <Pricing />}>
+        {user && <Route index element={<Pricing />} />}
+      </Route>
 
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
@@ -40,9 +46,11 @@ export default function App() {
         <Route path="lyrics" element={<MyLyrics />} />
         <Route path="lyrics/:id" element={<LyricsDetail />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="subscription" element={<Subscription />} />
         <Route path="admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
         <Route path="admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
         <Route path="admin/apikeys" element={<ProtectedRoute adminOnly><ApiKeys /></ProtectedRoute>} />
+        <Route path="admin/subscriptions" element={<ProtectedRoute adminOnly><SubscriptionManagement /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />

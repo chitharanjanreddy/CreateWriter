@@ -8,6 +8,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { protect, optionalAuth } = require('../middleware/auth');
+const { checkUsageLimit } = require('../middleware/usageLimit');
 
 const {
   generateLyrics,
@@ -42,8 +43,8 @@ router.get('/public', optionalAuth, getPublicLyrics);
 // Protected routes
 router.use(protect);
 
-// Generate lyrics
-router.post('/generate', generateValidation, validate, generateLyrics);
+// Generate lyrics (with usage limit check)
+router.post('/generate', checkUsageLimit('lyrics'), generateValidation, validate, generateLyrics);
 
 // Stats
 router.get('/stats', getStats);

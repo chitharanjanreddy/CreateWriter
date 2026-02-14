@@ -81,6 +81,13 @@ const config = {
     name: process.env.ADMIN_NAME || 'Admin User'
   },
 
+  // Razorpay Payment Gateway
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+    keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || ''
+  },
+
   // Lyrics Generation
   lyrics: {
     maxTokens: 2500,

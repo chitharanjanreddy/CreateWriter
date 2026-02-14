@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { checkUsageLimit } = require('../middleware/usageLimit');
 
 const {
   generateMusic,
@@ -30,10 +31,10 @@ router.get('/voices', getVoices);
 router.get('/avatars', getAvatars);
 router.get('/audio-proxy', audioProxy);
 
-// Generation endpoints (per lyrics)
-router.post('/:lyricsId/music', generateMusic);
-router.post('/:lyricsId/video', generateVideo);
-router.post('/:lyricsId/voice', generateVoice);
+// Generation endpoints (per lyrics) - with usage limit checks
+router.post('/:lyricsId/music', checkUsageLimit('music'), generateMusic);
+router.post('/:lyricsId/video', checkUsageLimit('video'), generateVideo);
+router.post('/:lyricsId/voice', checkUsageLimit('voice'), generateVoice);
 
 // Status checks
 router.get('/video/:videoId/status', checkVideoStatus);

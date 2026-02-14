@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useSubscription } from '../context/SubscriptionContext';
+import UsageIndicator from '../components/UsageIndicator';
 import api from '../services/api';
 
 const STYLES = [
@@ -28,12 +30,16 @@ const FORMS = [
 
 export default function GenerateLyrics() {
   const navigate = useNavigate();
+  const { canUse, getRemaining, refresh } = useSubscription();
   const [form, setForm] = useState({
     theme: '', customLines: '', style: 'romantic', dialect: 'coastal', poetryForm: 'geeyam'
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const lyricsAllowed = canUse('lyrics');
+  const lyricsInfo = getRemaining('lyrics');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -49,8 +55,13 @@ export default function GenerateLyrics() {
     try {
       const res = await api.generateLyrics(form);
       setResult(res.data);
+      refresh(); // Refresh usage counts
     } catch (err) {
-      setError(err.error || 'Generation failed');
+      if (err.code === 'USAGE_LIMIT_REACHED' || err.code === 'FEATURE_NOT_AVAILABLE') {
+        setError(err.error);
+      } else {
+        setError(err.error || 'Generation failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -63,28 +74,37 @@ export default function GenerateLyrics() {
           <h1>Generate Telugu Lyrics</h1>
           <p className="text-muted">AI-powered Telugu song lyrics generator</p>
         </div>
+        <UsageIndicator type="lyrics" compact />
       </div>
+
+      {!lyricsAllowed && lyricsInfo.limit !== -1 && (
+        <div className="alert alert-warning upgrade-prompt">
+          <strong>Lyrics limit reached!</strong> You've used {lyricsInfo.current}/{lyricsInfo.limit} lyrics this period.
+          <Link to="/pricing" className="btn btn-sm btn-primary" style={{ marginLeft: 12 }}>Upgrade Plan</Link>
+        </div>
+      )}
 
       <div className="generate-layout">
         <div className="card generate-form-card">
           <h3>Configuration</h3>
-          <form onSubmit={handleGenerate}>
+          <UsageIndicator type="lyrics" />
+          <form onSubmit={handleGenerate} style={{ marginTop: 16 }}>
             {error && <div className="alert alert-error">{error}</div>}
 
             <div className="form-group">
               <label>Theme / Topic</label>
-              <input value={form.theme} onChange={e => set('theme', e.target.value)} placeholder="e.g., Spring season, Love, Devotion to Lord Venkateswara" />
+              <input value={form.theme} onChange={e => set('theme', e.target.value)} placeholder="e.g., Spring season, Love, Devotion to Lord Venkateswara" disabled={!lyricsAllowed && lyricsInfo.limit !== -1} />
             </div>
 
             <div className="form-group">
               <label>Custom Lines (optional)</label>
               <textarea value={form.customLines} onChange={e => set('customLines', e.target.value)}
-                placeholder="Your own lines to incorporate into the lyrics" rows={3} />
+                placeholder="Your own lines to incorporate into the lyrics" rows={3} disabled={!lyricsAllowed && lyricsInfo.limit !== -1} />
             </div>
 
             <div className="form-group">
               <label>Style</label>
-              <select value={form.style} onChange={e => set('style', e.target.value)}>
+              <select value={form.style} onChange={e => set('style', e.target.value)} disabled={!lyricsAllowed && lyricsInfo.limit !== -1}>
                 {STYLES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
@@ -92,20 +112,20 @@ export default function GenerateLyrics() {
             <div className="form-row">
               <div className="form-group">
                 <label>Dialect</label>
-                <select value={form.dialect} onChange={e => set('dialect', e.target.value)}>
+                <select value={form.dialect} onChange={e => set('dialect', e.target.value)} disabled={!lyricsAllowed && lyricsInfo.limit !== -1}>
                   {DIALECTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
               </div>
               <div className="form-group">
                 <label>Poetry Form</label>
-                <select value={form.poetryForm} onChange={e => set('poetryForm', e.target.value)}>
+                <select value={form.poetryForm} onChange={e => set('poetryForm', e.target.value)} disabled={!lyricsAllowed && lyricsInfo.limit !== -1}>
                   {FORMS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                 </select>
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-              {loading ? 'Generating...' : 'Generate Lyrics'}
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading || (!lyricsAllowed && lyricsInfo.limit !== -1)}>
+              {loading ? 'Generating...' : (!lyricsAllowed && lyricsInfo.limit !== -1) ? 'Limit Reached - Upgrade' : 'Generate Lyrics'}
             </button>
           </form>
         </div>

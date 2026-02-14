@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../context/SubscriptionContext';
+import UsageIndicator from '../components/UsageIndicator';
 import api from '../services/api';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { currentPlan, subscription } = useSubscription();
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +39,29 @@ export default function Dashboard() {
         </div>
         <Link to="/generate" className="btn btn-primary">+ Generate New Lyrics</Link>
       </div>
+
+      {/* Current Plan Card */}
+      {currentPlan && (
+        <div className="card dash-plan-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <h3 style={{ marginBottom: 4 }}>{currentPlan.name} Plan</h3>
+              <span className={`tag ${subscription?.status === 'active' ? 'tag-green' : 'tag-purple'}`} style={{ textTransform: 'capitalize' }}>
+                {subscription?.status || 'active'}
+              </span>
+            </div>
+            <Link to="/pricing" className="btn btn-sm btn-primary">
+              {currentPlan.tier === 'free' ? 'Upgrade' : 'Change Plan'}
+            </Link>
+          </div>
+          <div className="usage-grid">
+            <UsageIndicator type="lyrics" />
+            <UsageIndicator type="music" />
+            <UsageIndicator type="video" />
+            <UsageIndicator type="voice" />
+          </div>
+        </div>
+      )}
 
       <div className="stat-grid">
         <div className="stat-card">

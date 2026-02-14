@@ -7,6 +7,7 @@ const Lyrics = require('../models/Lyrics');
 const ApiKey = require('../models/ApiKey');
 const config = require('../config/config');
 const { asyncHandler, AppError } = require('../middleware/errorHandler');
+const { incrementUsage } = require('../middleware/usageLimit');
 const fetch = require('node-fetch');
 
 // ======================= MUSIC GENERATION (SUNO) =======================
@@ -121,6 +122,11 @@ const generateMusic = asyncHandler(async (req, res, next) => {
     };
   }
 
+  // Increment subscription usage for music generation
+  if (result && result.status !== 'error' && !result.demo) {
+    await incrementUsage('music', req.user._id);
+  }
+
   // Save music info to lyrics if successful
   if (result && result.url) {
     lyrics.musicGenerated = {
@@ -219,6 +225,11 @@ const generateVideo = asyncHandler(async (req, res, next) => {
       message: 'HeyGen API key not configured. Go to Admin > API Keys to add your HeyGen key.',
       demo: true
     };
+  }
+
+  // Increment subscription usage for video generation
+  if (result && result.status !== 'error' && !result.demo) {
+    await incrementUsage('video', req.user._id);
   }
 
   // Save video info if we got a video ID
@@ -344,6 +355,11 @@ const generateVoice = asyncHandler(async (req, res, next) => {
       message: 'ElevenLabs API key not configured. Go to Admin > API Keys to add your ElevenLabs key.',
       demo: true
     };
+  }
+
+  // Increment subscription usage for voice generation
+  if (result && result.status !== 'error' && !result.demo) {
+    await incrementUsage('voice', req.user._id);
   }
 
   res.status(200).json({

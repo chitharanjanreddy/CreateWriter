@@ -10,6 +10,7 @@ const authRoutes = require('./authRoutes');
 const adminRoutes = require('./adminRoutes');
 const lyricsRoutes = require('./lyricsRoutes');
 const mediaRoutes = require('./mediaRoutes');
+const subscriptionRoutes = require('./subscriptionRoutes');
 
 // Health check
 router.get('/health', (req, res) => {
@@ -26,5 +27,6 @@ router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
 router.use('/lyrics', lyricsRoutes);
 router.use('/media', mediaRoutes);
+router.use('/subscriptions', subscriptionRoutes);
 
 module.exports = router;

@@ -8,6 +8,7 @@ const ApiKey = require('../models/ApiKey');
 const User = require('../models/User');
 const config = require('../config/config');
 const { asyncHandler, AppError } = require('../middleware/errorHandler');
+const { incrementUsage } = require('../middleware/usageLimit');
 const fetch = require('node-fetch');
 
 // ======================= LYRICS GENERATION =======================
@@ -107,6 +108,9 @@ const generateLyrics = asyncHandler(async (req, res, next) => {
     await User.findByIdAndUpdate(req.user._id, {
       $inc: { 'stats.lyricsGenerated': 1 }
     });
+
+    // Increment subscription usage
+    await incrementUsage('lyrics', req.user._id);
   }
 
   res.status(200).json({

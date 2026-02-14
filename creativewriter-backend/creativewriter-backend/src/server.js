@@ -10,6 +10,7 @@ const config = require('./config/config');
 const connectDB = require('./config/database');
 const User = require('./models/User');
 const ApiKey = require('./models/ApiKey');
+const SubscriptionPlan = require('./models/SubscriptionPlan');
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
@@ -30,6 +31,9 @@ const startServer = async () => {
 
     // Initialize API keys
     await ApiKey.initializeDefaults();
+
+    // Initialize subscription plans
+    await SubscriptionPlan.initializeDefaults();
 
     // Start server
     const PORT = config.port;
