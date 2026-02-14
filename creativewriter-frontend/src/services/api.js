@@ -1,22 +1,12 @@
 const API_BASE = '/api/v1';
 
 class ApiService {
-  constructor() {
-    this.token = localStorage.getItem('cw_token') || '';
-  }
-
-  setToken(token) {
-    this.token = token;
-    if (token) localStorage.setItem('cw_token', token);
-    else localStorage.removeItem('cw_token');
-  }
-
   async request(method, endpoint, body = null) {
     const opts = {
       method,
+      credentials: 'include',
       headers: {}
     };
-    if (this.token) opts.headers['Authorization'] = `Bearer ${this.token}`;
     if (body) {
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
@@ -74,6 +64,31 @@ class ApiService {
   updateApiKey(service, body) { return this.request('PUT', `/admin/apikeys/${service}`, body); }
   testApiKey(service) { return this.request('POST', `/admin/apikeys/${service}/test`); }
   clearApiKey(service) { return this.request('DELETE', `/admin/apikeys/${service}`); }
+
+  // Subscriptions - Public
+  getPlans() { return this.request('GET', '/subscriptions/plans'); }
+
+  // Subscriptions - User
+  getMySubscription() { return this.request('GET', '/subscriptions/my'); }
+  getMyUsage() { return this.request('GET', '/subscriptions/my/usage'); }
+  validatePromo(code, planId) { return this.request('POST', '/subscriptions/validate-promo', { code, planId }); }
+  createOrder(planId, billingCycle, promoCode) { return this.request('POST', '/subscriptions/create-order', { planId, billingCycle, promoCode }); }
+  verifyPayment(body) { return this.request('POST', '/subscriptions/verify-payment', body); }
+  cancelSubscription() { return this.request('POST', '/subscriptions/cancel'); }
+
+  // Subscriptions - Admin
+  adminGetPlans() { return this.request('GET', '/subscriptions/admin/plans'); }
+  adminCreatePlan(body) { return this.request('POST', '/subscriptions/admin/plans', body); }
+  adminUpdatePlan(id, body) { return this.request('PUT', `/subscriptions/admin/plans/${id}`, body); }
+  adminTogglePlan(id) { return this.request('PATCH', `/subscriptions/admin/plans/${id}/toggle`); }
+  adminAddOffer(planId, body) { return this.request('POST', `/subscriptions/admin/plans/${planId}/offers`, body); }
+  adminRemoveOffer(planId, offerId) { return this.request('DELETE', `/subscriptions/admin/plans/${planId}/offers/${offerId}`); }
+  adminOverrideSubscription(userId, planId, reason) { return this.request('POST', `/subscriptions/admin/users/${userId}/override`, { planId, reason }); }
+  adminGetSubscriptions(params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request('GET', '/subscriptions/admin/subscriptions' + (q ? '?' + q : ''));
+  }
+  adminGetAnalytics() { return this.request('GET', '/subscriptions/admin/analytics'); }
 }
 
 const api = new ApiService();
