@@ -13,12 +13,8 @@ const config = require('../config/config');
 const protect = async (req, res, next) => {
   let token;
 
-  // Check for token in Authorization header
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  } 
-  // Check for token in cookies
-  else if (req.cookies && req.cookies.token) {
+  // Read token exclusively from httpOnly cookie (not from Authorization header)
+  if (req.cookies && req.cookies.token) {
     token = req.cookies.token;
   }
 
@@ -93,9 +89,8 @@ const protect = async (req, res, next) => {
 const optionalAuth = async (req, res, next) => {
   let token;
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  } else if (req.cookies && req.cookies.token) {
+  // Read token exclusively from httpOnly cookie (not from Authorization header)
+  if (req.cookies && req.cookies.token) {
     token = req.cookies.token;
   }
 

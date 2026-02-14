@@ -4,6 +4,8 @@
  */
 
 const User = require('../models/User');
+const SubscriptionPlan = require('../models/SubscriptionPlan');
+const Subscription = require('../models/Subscription');
 const config = require('../config/config');
 const { asyncHandler, AppError } = require('../middleware/errorHandler');
 
@@ -31,6 +33,21 @@ const register = asyncHandler(async (req, res, next) => {
       organization: organization || ''
     }
   });
+
+  // Create free subscription for new user
+  try {
+    const freePlan = await SubscriptionPlan.findOne({ tier: 'free' });
+    if (freePlan) {
+      await Subscription.create({
+        user: user._id,
+        plan: freePlan._id,
+        status: 'active',
+        billingCycle: 'none'
+      });
+    }
+  } catch (subError) {
+    console.error('Error creating free subscription:', subError.message);
+  }
 
   // Send token response
   sendTokenResponse(user, 201, res, 'Registration successful');
@@ -102,9 +119,21 @@ const logout = asyncHandler(async (req, res, next) => {
 const getMe = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user.id);
 
+  // Attach subscription info
+  const subscription = await Subscription.getForUser(req.user.id);
+  const userData = user.toObject();
+  if (subscription) {
+    userData.subscription = {
+      plan: subscription.plan,
+      status: subscription.status,
+      usage: subscription.usage,
+      endDate: subscription.endDate
+    };
+  }
+
   res.status(200).json({
     success: true,
-    data: user
+    data: userData
   });
 });
 
@@ -259,7 +288,6 @@ const sendTokenResponse = (user, statusCode, res, message = 'Success') => {
     .json({
       success: true,
       message,
-      token,
       data: userData
     });
 };
